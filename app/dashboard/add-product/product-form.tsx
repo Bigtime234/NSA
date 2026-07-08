@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm } from "react-hook-form"
-import { zProductSchema, ProductSchema } from "@/types/product-schema"
+import { zProductSchema, ProductSchema, SportCategories } from "@/types/product-schema"
 import {
   Card,
   CardContent,
@@ -14,14 +14,19 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { DollarSign } from "lucide-react"
 import Tiptap from "./tiptap"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useAction } from "next-safe-action/hooks"
@@ -29,12 +34,9 @@ import { createProduct } from "@/lib/actions/create-product"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { getProduct } from "@/lib/actions/get-products"
-import { TbCurrencyNaira } from "react-icons/tb";
-
+import { TbCurrencyNaira } from "react-icons/tb"
 import { useEffect } from "react"
 
-
-// Your form component
 export default function ProductForm() {
   const form = useForm<zProductSchema>({
     resolver: zodResolver(ProductSchema),
@@ -42,6 +44,7 @@ export default function ProductForm() {
       title: "",
       description: "",
       price: 0,
+      category: "all",
     },
     mode: "onChange",
   })
@@ -63,6 +66,7 @@ export default function ProductForm() {
         form.setValue("title", data.success.title)
         form.setValue("description", data.success.description)
         form.setValue("price", data.success.price)
+        form.setValue("category", data.success.category ?? "all")
         form.setValue("id", id)
       }
     }
@@ -76,9 +80,7 @@ export default function ProductForm() {
 
   const { execute, status } = useAction(createProduct, {
     onSuccess: (data) => {
-      // Dismiss all loading toasts first
       toast.dismiss()
-      
       if (data?.data?.error) {
         toast.error(data.data.error)
       }
@@ -87,8 +89,7 @@ export default function ProductForm() {
         router.push("/dashboard/products")
       }
     },
-    onError: (error) => {
-      // Dismiss loading toasts on error too
+    onError: () => {
       toast.dismiss()
       toast.error("Something went wrong")
     },
@@ -118,6 +119,8 @@ export default function ProductForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+            {/* Title */}
             <FormField
               control={form.control}
               name="title"
@@ -125,27 +128,29 @@ export default function ProductForm() {
                 <FormItem>
                   <FormLabel>Product Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Saekdong Stripe" {...field} />
+                    <Input placeholder="NSA Pro Football Jersey" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Description */}
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
-                    <FormControl>
-                    <Tiptap 
-                      val={field.value} 
-                    />
-                    </FormControl>
+                  <FormControl>
+                    <Tiptap val={field.value} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Price */}
             <FormField
               control={form.control}
               name="price"
@@ -164,7 +169,9 @@ export default function ProductForm() {
                         placeholder="Your price in Naira"
                         step="0.1"
                         min={0}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(parseFloat(e.target.value) || 0)
+                        }
                       />
                     </div>
                   </FormControl>
@@ -172,6 +179,37 @@ export default function ProductForm() {
                 </FormItem>
               )}
             />
+
+            {/* Sport Category Dropdown */}
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sport Category</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a sport category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SportCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <Button
               className="w-full"
               disabled={

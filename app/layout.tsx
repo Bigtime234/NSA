@@ -1,32 +1,29 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
-import Nav from "./components/navigation/nav";
-import { Toaster } from "@/components/ui/sooner";
-import { Source_Serif_4 } from "next/font/google";
-// import Footer from "@/components/footer"
-// If Footer exists at './components/footer', use:
+import NavWrapper from "./components/navigation/nav-wrapper";
+import { Toaster } from "@/components/ui/sooner"
 import Footer from "./components/footer";
 
-const sourceSerif4 = Source_Serif_4({
-  weight: ["200", "300", "400", "500", "600", "700", "800", "900"],
-  subsets: ["latin"],
-  variable: "--font-source-serif-4",
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-dm-sans',
+  display: 'swap',
 });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
-  title: "Debbies cakes and pastries",
-  description: "Debbies cakes and pastries",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  title: 'NSA — Premium Sports Jerseys & Apparel',
+  description: 'NSA delivers premium sports jerseys and accessories for athletes and streetwear enthusiasts who demand elite quality and uncompromising style.',
+  icons: {
+    icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
+  },
 };
 
 export default function RootLayout({
@@ -35,12 +32,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${sourceSerif4.className} ${geistSans.variable}bg-amber-50  ${geistMono.variable}  antialiased`}
-      >
-        <Nav />
-        {/* Full-width wrapper (no padding) */}
+    <html lang="en" className={dmSans.variable}>
+      <body className={`${dmSans.className} antialiased`}>
+        <NavWrapper />
         <div className="w-full">
           {children}
         </div>

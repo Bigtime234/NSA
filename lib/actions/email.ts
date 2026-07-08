@@ -35,7 +35,7 @@ export const sendNewOrderNotificationEmail = async (order: {
 
   const { error } = await resend.emails.send({
     from: 'Acme <onboarding@resend.dev>',
-    to: "codebyriven@gmail.com", // Replace with your admin email
+    to: "nsaofficial001@gmail.com", // Replace with your admin email
     subject: `🛒 New Order - #${order.id}`,
     html,
   });

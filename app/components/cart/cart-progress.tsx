@@ -1,60 +1,70 @@
 "use client"
+
 import { motion } from "framer-motion"
 import { useCartStore } from "@/lib/client-store"
-import { Check, CreditCard, ShoppingCart } from "lucide-react"
+import { ShoppingBag, CreditCard, Check } from "lucide-react"
+
+const steps = [
+  { id: "cart-page", label: "Bag", icon: ShoppingBag },
+  { id: "payment-page", label: "Payment", icon: CreditCard },
+  { id: "confirmation-page", label: "Confirmed", icon: Check },
+]
 
 export default function CartProgress() {
   const { checkoutProgress } = useCartStore()
+
+  const activeIndex = steps.findIndex((s) => s.id === checkoutProgress)
+
   return (
-    <div className="flex items-center justify-center pb-6">
-      <div className="w-64 h-3 bg-muted rounded-md relative">
-        <div className="absolute top-0 left-0 h-full w-full flex items-center justify-between">
-          <motion.span
-            className="absolute bg-primary  left-0 top-0 z-30  ease-in-out h-full"
-            initial={{ width: 0 }}
-            animate={{
-              width:
-                checkoutProgress === "cart-page"
-                  ? 0
-                  : checkoutProgress === "payment-page"
-                  ? "50%"
-                  : "100%",
-            }}
-          />
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.25 }}
-            className="bg-primary rounded-full p-2 z-50"
-          >
-            <ShoppingCart className="text-white" size={14} />
-          </motion.div>
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{
-              scale:
-                checkoutProgress === "payment-page"
-                  ? 1
-                  : 0 || checkoutProgress === "confirmation-page"
-                  ? 1
-                  : 0,
-            }}
-            transition={{ delay: 0.25 }}
-            className="bg-primary rounded-full p-2 z-50"
-          >
-            <CreditCard className="text-white" size={14} />
-          </motion.div>
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{
-              scale: checkoutProgress === "confirmation-page" ? 1 : 0,
-            }}
-            transition={{ delay: 0.25 }}
-            className="bg-primary rounded-full p-2 z-50"
-          >
-            <Check className="text-white" size={14} />
-          </motion.div>
-        </div>
+    <div className="px-6 py-4 border-b border-black/10">
+      <div className="flex items-center justify-between relative">
+        {/* Progress line */}
+        <div className="absolute top-4 left-4 right-4 h-[1px] bg-black/10 z-0" />
+        <motion.div
+          className="absolute top-4 left-4 h-[1px] bg-black z-0"
+          initial={{ width: 0 }}
+          animate={{
+            width:
+              checkoutProgress === "cart-page"
+                ? "0%"
+                : checkoutProgress === "payment-page"
+                ? "50%"
+                : "100%",
+          }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+        />
+
+        {steps.map((step, index) => {
+          const isActive = index <= activeIndex
+          const Icon = step.icon
+          return (
+            <div key={step.id} className="flex flex-col items-center gap-2 z-10">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: index * 0.1 }}
+                className={`w-8 h-8 flex items-center justify-center border transition-all duration-300 ${
+                  isActive
+                    ? "bg-black border-black"
+                    : "bg-white border-black/20"
+                }`}
+              >
+                <Icon
+                  size={14}
+                  className={isActive ? "text-white" : "text-black/30"}
+                />
+              </motion.div>
+              <span
+                className={`uppercase font-bold tracking-[0.2em] transition-colors duration-300 ${
+                  isActive ? "text-black" : "text-black/30"
+                }`}
+                style={{ fontSize: "0.5rem" }}
+              >
+                {step.label}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

@@ -1,320 +1,253 @@
 "use client"
 
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableHeader,
-} from "@/components/ui/table"
 import { useCartStore } from "@/lib/client-store"
 import { AnimatePresence, motion } from "framer-motion"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import formatPrice from "@/lib/format-price"
 import Image from "next/image"
-import { MinusCircle, PlusCircle, Cake } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Minus, Plus, ShoppingBag, X, MapPin, ChevronDown } from "lucide-react"
 import Lottie from "lottie-react"
 import emptycart from "@/public/empty-box.json"
+import { dispatchLocations } from "@/lib/dispatch-fees"
 
 export default function CartItems() {
-  const { cart, addToCart, removeFromCart, setCheckoutProgress } =
-    useCartStore()
+  const {
+    cart,
+    addToCart,
+    removeFromCart,
+    setCheckoutProgress,
+    dispatchLocation,
+    dispatchFee,
+    setDispatchLocation,
+  } = useCartStore()
 
-  const totalPrice = useMemo(() => {
-    return cart.reduce((acc, item) => {
-      return acc + item.price! * item.variant.quantity
-    }, 0)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+
+  const itemsTotal = useMemo(() => {
+    return cart.reduce((acc, item) => acc + item.price! * item.variant.quantity, 0)
   }, [cart])
 
-  // ✅ FIXED: Use index-based keys for stable animation
-  const priceInLetters = useMemo(() => {
-    return [...totalPrice.toFixed(2).toString()].map((letter, index) => {
-      return { letter, id: `price-${index}-${letter}` } // Stable key based on position and value
-    })
-  }, [totalPrice])
+  const grandTotal = itemsTotal + dispatchFee
 
-  // Helper function to render customization details
-  const renderCustomizationDetails = (item: any) => {
-    const customization = item.customization;
-    if (!customization) return null;
+  const handleLocationSelect = (value: string, fee: number) => {
+    setDispatchLocation(value, fee)
+    setDropdownOpen(false)
+  }
 
-    return (
-      <div className="mt-2 p-2 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-pink-200">
-        <div className="flex items-center gap-1 mb-1">
-          <Cake className="w-3 h-3 text-pink-500" />
-          <span className="text-xs font-semibold text-pink-600">Custom Cake Details:</span>
-        </div>
-        <div className="text-xs text-gray-600 space-y-1">
-          <div className="flex flex-wrap gap-2">
-            <span><strong>Size:</strong> {customization.size}</span>
-            <span><strong>Layers:</strong> {customization.layers}</span>
-          </div>
-          {customization.flavour && customization.flavour !== 'None' && (
-            <div><strong>Flavour:</strong> {customization.flavour}</div>
-          )}
-          {customization.upgrade && customization.upgrade !== 'None' && (
-            <div><strong>Upgrade:</strong> {customization.upgrade}</div>
-          )}
-          {customization.toppings && customization.toppings.length > 0 && (
-            <div><strong>Toppings:</strong> {customization.toppings.join(', ')}</div>
-          )}
-          {customization.addOns && customization.addOns.length > 0 && (
-            <div><strong>Add-ons:</strong> {customization.addOns.join(', ')}</div>
-          )}
-          {customization.message && (
-            <div><strong>Message:</strong> "{customization.message}"</div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const selectedLabel = dispatchLocations.find(
+    (loc) => loc.value === dispatchLocation
+  )?.label
 
   return (
-    <motion.div className="flex flex-col items-center bg-[#F7F4E9]">
+    <motion.div className="flex flex-col">
       {cart.length === 0 && (
-        <div className="flex-col w-full flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center py-12">
           <motion.div
             animate={{ opacity: 1 }}
             initial={{ opacity: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
+            className="flex flex-col items-center"
           >
-            <h2 className="text-2xl text-muted-foreground text-center">
-              Your cart is empty
-            </h2>
-            <Lottie className="h-64" animationData={emptycart} />
+            <Lottie className="h-48" animationData={emptycart} />
+            <p className="text-black font-black uppercase text-xl tracking-tight mt-4">
+              Your bag is empty
+            </p>
+            <p className="text-black/40 uppercase font-bold tracking-[0.3em] text-[0.6rem] mt-2">
+              Add something to get started
+            </p>
           </motion.div>
         </div>
       )}
+
       {cart.length > 0 && (
-        <div className="max-h-80 w-full overflow-y-auto">
-          {/* Mobile view - Hidden on desktop */}
-          <div className="block md:hidden space-y-4">
+        <div className="flex flex-col divide-y divide-black/10">
+          <AnimatePresence>
             {cart.map((item, index) => (
-              <motion.div 
-                key={`mobile-${item.id}-${item.variant.variantID}`} // ✅ FIXED: More descriptive key
-                initial={{ opacity: 0, y: 20 }}
+              <motion.div
+                key={`${item.id}-${item.variant.variantID}`}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative overflow-hidden rounded-2xl p-1 bg-gradient-to-br from-pink-400 via-purple-500 to-blue-500 shadow-lg"
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ delay: index * 0.05 }}
+                className="flex items-center gap-4 py-5"
               >
-                <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 backdrop-blur-sm">
-                  <div className="flex items-start gap-4">
-                    <div className="relative">
-                      <Image
-                        className="rounded-xl flex-shrink-0 shadow-md"
-                        width={70}
-                        height={70}
-                        src={item.image}
-                        alt={item.name}
-                        priority
-                      />
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-orange-400 to-pink-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{item.variant.quantity}</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-800 dark:text-white mb-1 truncate">{item.name}</h3>
-                      <div className="inline-block px-3 py-1 bg-gradient-to-r from-green-400 to-blue-500 text-white text-sm font-semibold rounded-full shadow-sm">
-                        {formatPrice(item.price)}
-                      </div>
-                      
-                      {/* Render customization details for mobile */}
-                      {renderCustomizationDetails(item)}
-                      
-                      {/* Quantity controls for mobile */}
-                      <div className="flex items-center gap-4 mt-4">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            removeFromCart({
-                              ...item,
-                              variant: {
-                                ...item.variant,
-                                quantity: 1,
-                                variantID: item.variant.variantID,
-                              },
-                            })
-                          }}
-                          className="p-2 rounded-full bg-gradient-to-r from-red-400 to-pink-500 hover:from-red-500 hover:to-pink-600 shadow-lg transition-all duration-200 border-2 border-white"
-                        >
-                          <MinusCircle className="text-white drop-shadow-lg" size={22} strokeWidth={2.5} />
-                        </motion.button>
-                        
-                        <div className="px-4 py-2 bg-gradient-to-r from-indigo-400 to-purple-500 text-white font-bold rounded-full shadow-md min-w-[60px] text-center">
-                          {item.variant.quantity}
-                        </div>
-                        
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            addToCart({
-                              ...item,
-                              variant: {
-                                ...item.variant,
-                                quantity: 1,
-                                variantID: item.variant.variantID,
-                              },
-                            })
-                          }}
-                          className="p-2 rounded-full bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 shadow-lg transition-all duration-200 border-2 border-white"
-                        >
-                          <PlusCircle className="text-white drop-shadow-lg" size={22} strokeWidth={2.5} />
-                        </motion.button>
-                      </div>
-                    </div>
+                <div className="relative w-16 h-20 bg-black/5 flex-shrink-0 overflow-hidden">
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                  />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className="text-black font-black uppercase truncate tracking-tight"
+                    style={{ fontSize: "0.85rem" }}
+                  >
+                    {item.name}
+                  </h3>
+                  <p className="text-black font-bold mt-1">
+                    {formatPrice(item.price)}
+                  </p>
+
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      onClick={() =>
+                        removeFromCart({
+                          ...item,
+                          variant: { ...item.variant, quantity: 1 },
+                        })
+                      }
+                      className="w-7 h-7 border border-black/20 flex items-center justify-center hover:bg-black hover:border-black hover:text-white transition-all duration-200"
+                    >
+                      <Minus size={11} />
+                    </button>
+                    <span className="text-black font-black text-sm w-4 text-center">
+                      {item.variant.quantity}
+                    </span>
+                    <button
+                      onClick={() =>
+                        addToCart({
+                          ...item,
+                          variant: { ...item.variant, quantity: 1 },
+                        })
+                      }
+                      className="w-7 h-7 border border-black/20 flex items-center justify-center hover:bg-black hover:border-black hover:text-white transition-all duration-200"
+                    >
+                      <Plus size={11} />
+                    </button>
                   </div>
+                </div>
+
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className="text-black font-black text-sm">
+                    {formatPrice(item.price * item.variant.quantity)}
+                  </span>
+                  <button
+                    onClick={() =>
+                      removeFromCart({
+                        ...item,
+                        variant: { ...item.variant, quantity: item.variant.quantity },
+                      })
+                    }
+                    className="text-black/20 hover:text-black transition-colors duration-200"
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
               </motion.div>
             ))}
-          </div>
-
-          {/* Desktop table view - Hidden on mobile */}
-          <div className="hidden md:block">
-            <div className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-1 rounded-2xl shadow-2xl">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 backdrop-blur-sm">
-                <Table className="max-w-4xl mx-auto">
-                  <TableHeader>
-                    <TableRow className="border-b border-gray-200 dark:border-gray-700">
-                      <TableHead className="font-bold text-gray-800 dark:text-white">Product</TableHead>
-                      <TableHead className="font-bold text-gray-800 dark:text-white">Price</TableHead>
-                      <TableHead className="font-bold text-gray-800 dark:text-white">Image</TableHead>
-                      <TableHead className="font-bold text-gray-800 dark:text-white">Quantity</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cart.map((item, index) => (
-                      <TableRow 
-                        key={`desktop-${item.id}-${item.variant.variantID}`} // ✅ FIXED: More descriptive key
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                      >
-                        <TableCell className="font-medium text-gray-800 dark:text-white max-w-xs">
-                          <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                          >
-                            <div className="font-semibold">{item.name}</div>
-                            {/* Render customization details for desktop */}
-                            {renderCustomizationDetails(item)}
-                          </motion.div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-block px-2 py-1 bg-gradient-to-r from-green-400 to-blue-500 text-white text-sm font-semibold rounded-full">
-                            {formatPrice(item.price)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="relative">
-                            <Image
-                              className="rounded-xl shadow-md"
-                              width={48}
-                              height={48}
-                              src={item.image}
-                              alt={item.name}
-                              priority
-                            />
-                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-orange-400 to-pink-500 rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">{item.variant.quantity}</span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                removeFromCart({
-                                  ...item,
-                                  variant: {
-                                    ...item.variant,
-                                    quantity: 1,
-                                    variantID: item.variant.variantID,
-                                  },
-                                })
-                              }}
-                              className="p-2 rounded-full bg-gradient-to-r from-red-400 to-pink-500 hover:from-red-500 hover:to-pink-600 shadow-md transition-all duration-200 border-2 border-white"
-                            >
-                              <MinusCircle className="text-white drop-shadow-lg" size={18} strokeWidth={2.5} />
-                            </motion.button>
-                            
-                            <div className="px-3 py-1 bg-gradient-to-r from-indigo-400 to-purple-500 text-white font-bold rounded-full shadow-md min-w-[50px] text-center">
-                              {item.variant.quantity}
-                            </div>
-                            
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                addToCart({
-                                  ...item,
-                                  variant: {
-                                    ...item.variant,
-                                    quantity: 1,
-                                    variantID: item.variant.variantID,
-                                  },
-                                })
-                              }}
-                              className="p-2 rounded-full bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 shadow-md transition-all duration-200 border-2 border-white"
-                            >
-                              <PlusCircle className="text-white drop-shadow-lg" size={18} strokeWidth={2.5} />
-                            </motion.button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </div>
+          </AnimatePresence>
         </div>
       )}
-      
-      {/* Colorful total section */}
-      <motion.div className="flex items-center justify-center relative my-6 overflow-hidden">
-        <div className="px-6 py-3 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl shadow-xl">
-          <div className="flex items-center gap-2 text-white font-bold text-lg">
-            <span>Total: #</span>
-            <AnimatePresence mode="popLayout">
-              {priceInLetters.map((letter, i) => (
-                <motion.div key={letter.id}> {/* ✅ FIXED: Now uses stable keys */}
-                  <motion.span
-                    initial={{ y: 20 }}
-                    animate={{ y: 0 }}
-                    exit={{ y: -20 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="inline-block"
-                  >
-                    {letter.letter}
-                  </motion.span>
+
+      {/* Dispatch location selector */}
+      {cart.length > 0 && (
+        <div className="pt-6 mt-2 border-t border-black/10">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin size={13} className="text-black/40" />
+            <span
+              className="text-black/50 font-bold uppercase tracking-[0.3em]"
+              style={{ fontSize: "0.6rem" }}
+            >
+              Delivery Location
+            </span>
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="w-full flex items-center justify-between border border-black/15 px-4 py-3 hover:border-black transition-colors duration-200"
+            >
+              <span
+                className={`font-semibold text-sm ${
+                  selectedLabel ? "text-black" : "text-black/30"
+                }`}
+              >
+                {selectedLabel || "Select delivery location"}
+              </span>
+              <ChevronDown
+                size={14}
+                className={`text-black/40 transition-transform duration-200 ${
+                  dropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {dropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 right-0 mt-1 bg-white border border-black/15 max-h-56 overflow-y-auto z-20"
+                >
+                  {dispatchLocations.map((loc) => (
+                    <button
+                      key={loc.value}
+                      onClick={() => handleLocationSelect(loc.value, loc.fee)}
+                      className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-black hover:text-white transition-colors duration-150 ${
+                        dispatchLocation === loc.value ? "bg-black text-white" : "text-black"
+                      }`}
+                    >
+                      <span className="font-semibold text-sm">{loc.label}</span>
+                      <span className="font-bold text-xs">{formatPrice(loc.fee)}</span>
+                    </button>
+                  ))}
                 </motion.div>
-              ))}
+              )}
             </AnimatePresence>
           </div>
         </div>
-      </motion.div>
-      
-      {/* Colorful checkout button */}
-      <motion.div
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="w-full max-w-md"
-      >
-        <Button
-          onClick={() => {
-            setCheckoutProgress("payment-page")
-          }}
-          className="w-full h-12 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 hover:from-purple-600 hover:via-pink-600 hover:to-red-600 text-white font-bold text-lg rounded-xl shadow-lg transition-all duration-300 border-0"
-          disabled={cart.length === 0}
-        >
-          🛒 Checkout Now! 🎉
-        </Button>
-      </motion.div>
+      )}
+
+      {/* Totals + Checkout */}
+      {cart.length > 0 && (
+        <div className="pt-6 mt-2 border-t border-black/10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-black/40 font-bold uppercase tracking-[0.3em]" style={{ fontSize: "0.6rem" }}>
+              Subtotal
+            </span>
+            <span className="text-black font-bold text-sm">
+              {formatPrice(itemsTotal)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-black/40 font-bold uppercase tracking-[0.3em]" style={{ fontSize: "0.6rem" }}>
+              Dispatch Fee
+            </span>
+            <span className="text-black font-bold text-sm">
+              {dispatchLocation ? formatPrice(dispatchFee) : "Select location"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between mb-6 pt-4 border-t border-black/10">
+            <span
+              className="text-black/40 font-bold uppercase tracking-[0.3em]"
+              style={{ fontSize: "0.65rem" }}
+            >
+              Total
+            </span>
+            <span className="text-black font-black text-xl">
+              {formatPrice(grandTotal)}
+            </span>
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setCheckoutProgress("payment-page")}
+            disabled={cart.length === 0 || !dispatchLocation}
+            className="w-full bg-black text-white font-black uppercase tracking-[0.3em] py-4 text-[0.7rem] hover:bg-black/80 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-30"
+          >
+            <ShoppingBag size={14} />
+            {!dispatchLocation ? "Select Delivery Location" : "Checkout"}
+          </motion.button>
+        </div>
+      )}
     </motion.div>
   )
 }

@@ -2,36 +2,50 @@
 
 import { useCartStore } from "@/lib/client-store"
 import { motion } from "framer-motion"
-import { DrawerDescription, DrawerTitle } from "@/components/ui/drawer"
+import { DrawerTitle } from "@/components/ui/drawer"
 import { ArrowLeft } from "lucide-react"
 
 export default function CartMessage() {
   const { checkoutProgress, setCheckoutProgress } = useCartStore()
   return (
     <motion.div
-      className=" text-center"
       animate={{ opacity: 1, x: 0 }}
       initial={{ opacity: 0, x: 10 }}
     >
-      <DrawerTitle>
-        {checkoutProgress === "cart-page" ? "Your Cart Items" : null}
-        {checkoutProgress === "payment-page" ? "Choose a payment method" : null}
-        {checkoutProgress === "confirmation-page" ? "Order Confirmed" : null}
-      </DrawerTitle>
-      <DrawerDescription className="py-1">
-        {checkoutProgress === "cart-page" ? "  View and edit your bag." : null}
-        {checkoutProgress === "payment-page" ? (
-          <span
+      {checkoutProgress === "cart-page" && (
+        <div>
+          <p className="text-black/40 font-bold uppercase tracking-[0.4em] text-[0.6rem] mb-1">
+            Your Bag
+          </p>
+          <DrawerTitle className="text-black font-black uppercase text-2xl tracking-tight">
+            Cart
+          </DrawerTitle>
+        </div>
+      )}
+      {checkoutProgress === "payment-page" && (
+        <div>
+          <button
             onClick={() => setCheckoutProgress("cart-page")}
-            className="flex items-center justify-center gap-1 cursor-pointer hover:text-primary"
+            className="flex items-center gap-2 text-black/40 hover:text-black transition-colors duration-200 uppercase font-bold tracking-[0.2em] text-[0.6rem] mb-2"
           >
-            <ArrowLeft size={14} /> Head back to cart
-          </span>
-        ) : null}
-        {checkoutProgress === "confirmation-page"
-          ? "You will recieve an email with your receipt!"
-          : null}
-      </DrawerDescription>
+            <ArrowLeft size={11} />
+            Back to cart
+          </button>
+          <DrawerTitle className="text-black font-black uppercase text-2xl tracking-tight">
+            Checkout
+          </DrawerTitle>
+        </div>
+      )}
+      {checkoutProgress === "confirmation-page" && (
+        <div>
+          <p className="text-black/40 font-bold uppercase tracking-[0.4em] text-[0.6rem] mb-1">
+            Order Placed
+          </p>
+          <DrawerTitle className="text-black font-black uppercase text-2xl tracking-tight">
+            Confirmed
+          </DrawerTitle>
+        </div>
+      )}
     </motion.div>
   )
 }

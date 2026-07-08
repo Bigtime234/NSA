@@ -47,9 +47,13 @@ export default async function DashboardLayout({
   const allLinks = [...adminLinks, ...userLinks]
 
   return (
-    <div>
-      <DashboardNav allLinks={allLinks} />
-      {children}
+    // pt-28 clears the fixed main Nav (which sits at z-[100] over the whole site)
+    // so DashboardNav and page content never sit underneath it and become unclickable
+    <div className="pt-28 min-h-screen bg-white">
+      <div className="max-w-screen-2xl mx-auto px-6 md:px-10">
+        <DashboardNav allLinks={allLinks} />
+        {children}
+      </div>
     </div>
   )
 }

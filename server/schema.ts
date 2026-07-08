@@ -18,6 +18,16 @@ import type { AdapterAccountType } from "next-auth/adapters"
 
 export const RoleEnum = pgEnum("roles", ["user", "admin"])
 
+export const SportEnum = pgEnum("sport_category", [
+  "all",
+  "football",
+  "tennis",
+  "basketball",
+  "boxing",
+  "badminton",
+  "handball",
+])
+
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -105,6 +115,7 @@ export const products = pgTable("products", {
   title: text("title").notNull(),
   created: timestamp("created").defaultNow(),
   price: real("price").notNull(),
+  category: SportEnum("category").default("all").notNull(), // ✅ sport category added
 })
 
 export const productVariants = pgTable("productVariants", {
@@ -175,6 +186,8 @@ export const orders = pgTable("orders", {
   shippingCity: text("shippingCity"),
   shippingState: text("shippingState"),
   shippingPostalCode: text("shippingPostalCode"),
+  dispatchLocation: text("dispatchLocation"),
+  dispatchFee: real("dispatchFee").default(0),
   updatedAt: timestamp("updatedAt").defaultNow(),
 })
 
@@ -214,7 +227,10 @@ export const orderProduct = pgTable("orderProduct", {
   orderID: serial("orderID")
     .notNull()
     .references(() => orders.id, { onDelete: "cascade" }),
-})
+}, (table) => ({
+  orderProductProductIdx: index("orderProduct_productIdx").on(table.productID), // ✅ index added
+  orderProductOrderIdx: index("orderProduct_orderIdx").on(table.orderID),       // ✅ index added
+}))
 
 // Relations
 export const productRelations = relations(products, ({ many }) => ({

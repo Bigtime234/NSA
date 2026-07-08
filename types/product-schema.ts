@@ -1,5 +1,15 @@
 import * as z from "zod"
 
+export const SportCategories = [
+  "all",
+  "football",
+  "basketball",
+  "tennis",
+  "boxing",
+  "badminton",
+  "handball",
+] as const
+
 export const ProductSchema = z.object({
   id: z.number().optional(),
   title: z.string().min(5, {
@@ -11,6 +21,7 @@ export const ProductSchema = z.object({
   price: z.coerce
     .number({ invalid_type_error: "Price must be a number" })
     .positive({ message: "Price must be a positive number" }),
+  category: z.enum(SportCategories).default("all").optional(),
 })
 
 export type zProductSchema = z.infer<typeof ProductSchema>

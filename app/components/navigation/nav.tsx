@@ -1,100 +1,141 @@
-import React from 'react'
-import GoogleLogin from "./google-login"
-import GoogleLogout from "./google-logout"
-import { auth } from "@/server/auth"
-import { UserButton } from "./user-button"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { LogIn } from "lucide-react"
-import CartDrawer from '../cart/cart-drawer'
-import Image from 'next/image'
+'use client'
 
-export default async function Nav() {
-    const session = await auth()
-    return (
-        <>
-            {/* Spacer div to prevent content from hiding behind fixed navbar */}
-            <div className={`${!session ? 'h-36 md:h-40 lg:h-44 xl:h-48' : 'h-24 md:h-28 lg:h-32 xl:h-36'}`}></div>
-            
-            <header className="fixed top-0 left-0 right-0 z-50 py-4 shadow-lg bg-gradient-to-r from-pink-400 via-rose-300 to-pink-300 backdrop-blur-sm border-b border-pink-200/30">
-                <nav className="container mx-auto px-4">
-                    <ul className="flex justify-between items-center gap-4">
-                        {/* Logo Section */}
-                        <li className='flex-shrink-0'>
-                            <Link 
-                                href={"/"} 
-                                aria-label="Debbie's Cakes & Pastries" 
-                                className="block rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
-                            >
-                                <Image
-                                    src="/DebbiesLogopurple.jpg"
-                                    alt="Debbie's Cakes & Pastries Logo"
-                                    width={200}
-                                    height={120}
-                                    className="h-12 w-auto sm:h-14 md:h-16 lg:h-20 xl:h-24 rounded-xl object-cover filter brightness-110 contrast-110 saturate-110 transition-all duration-300"
-                                    priority
-                                />
-                            </Link>
-                        </li>
-                       
-                        {/* Title Section - Hidden on mobile, visible on larger screens */}
-                        <li className="hidden lg:block flex-1 text-center px-4">
-                            <h1 className="text-2xl xl:text-4xl font-dancing-script font-serif text-black drop-shadow-lg">
-                                Welcome to Debbies cakes and pastries 😋
-                            </h1>
-                        </li>
-                       
-                        {/* Navigation Actions */}
-                        <li className="flex items-center gap-4 md:gap-5 lg:gap-4 sm:gap-4">
-                            {/* Cart Drawer - Only show when logged in */}
-                            {session && (
-                                <div className='relative flex items-center'>
-                                    <CartDrawer/>
-                                </div>
-                            )}
-                            
-                            {/* Login/User Button */}
-                            {!session ? (
-                                <Button className="bg-white/95 text-pink-600 hover:bg-pink-50 hover:text-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-pink-200/50 hover:border-pink-300 px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 text-xs sm:text-sm md:text-base font-semibold rounded-xl backdrop-blur-sm transform hover:scale-105 hover:-translate-y-0.5">
-                                    <Link className="flex items-center gap-1.5 sm:gap-2" href="/login">
-                                        <LogIn size={14} className="sm:size-4 md:size-5"/>
-                                        <span className="hidden xs:inline">Sign in</span>
-                                        <span className="xs:hidden">In</span>
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <div className="flex items-center transform hover:scale-105 transition-all duration-300">
-                                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-1 shadow-lg border border-white/20">
-                                        <UserButton expires={session?.expires ?? ""} user={session?.user}/>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* About Us Button */}
-                            <Button className="bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-400 hover:to-pink-400 hover:text-white transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-rose-300/30 hover:border-rose-200/50 px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 text-xs sm:text-sm md:text-base font-semibold rounded-xl backdrop-blur-sm transform hover:scale-105 hover:-translate-y-0.5">
-                                <Link href="/socials" className="flex items-center">
-                                    <span className="hidden sm:inline font-serif">About us</span>
-                                    <span className="sm:hidden font-serif text-xs">About</span>
-                                </Link>
-                            </Button>
-                        </li>
-                    </ul>
-                </nav>
-              
-                
-                {/* Not Signed In Message */}
-                {!session && (
-                    <div className="bg-amber-400/90 text-amber-900 py-2 px-4 text-center border-t border-amber-300/30">
-                        <p className="text-sm md:text-base font-medium flex items-center justify-center gap-2">
-                            <span>⚠️</span>
-                            <span>You are not signed in</span>
-                            <Link href="/login" className="underline hover:text-amber-800 font-semibold ml-2">
-                                Sign in now
-                            </Link>
-                        </p>
-                    </div>
-                )}
-            </header>
-        </>
-    )
+import React, { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { LogIn } from 'lucide-react'
+import CartDrawer from '../cart/cart-drawer'
+import { UserButton } from './user-button'
+import { Session } from 'next-auth'
+
+interface NavProps {
+  session: Session | null
+}
+
+export default function Nav({ session }: NavProps) {
+  const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const headerRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 60)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
+
+  // Text/icon color flips: white over transparent (dark hero), black once scrolled onto white bg
+  const textColor = scrolled ? 'text-black' : 'text-white'
+
+  return (
+    <>
+      <header
+        ref={headerRef}
+        className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${
+          scrolled ? 'bg-white/95 backdrop-blur-sm border-b border-black/10' : 'bg-transparent'
+        }`}
+      >
+        <div className="max-w-screen-2xl mx-auto px-6 md:px-10 py-5 flex items-center justify-between relative">
+
+          {/* Left nav */}
+          <nav className="hidden md:flex items-center gap-10">
+            <Link href="/" className={`nav-link-nsa transition-colors duration-300 ${textColor}`}>Home</Link>
+            <Link href="/products" className={`nav-link-nsa transition-colors duration-300 ${textColor}`}>Shop</Link>
+          </nav>
+
+          {/* Logo center */}
+          <Link href="/" className="flex items-center gap-2.5 absolute left-1/2 -translate-x-1/2">
+            <span className={`font-black text-xl tracking-[0.15em] uppercase transition-colors duration-300 ${textColor}`}>
+              NSA
+            </span>
+          </Link>
+
+          {/* Right nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/products" className={`nav-link-nsa transition-colors duration-300 ${textColor}`}>Jerseys</Link>
+
+            {session && (
+              <div className={`relative flex items-center transition-colors duration-300 ${textColor}`}>
+                <CartDrawer />
+              </div>
+            )}
+
+            {!session ? (
+              <Link href="/login" className="btn-primary py-2.5 px-6 text-[0.6rem] flex items-center gap-2">
+                <LogIn size={12} />
+                Sign In
+              </Link>
+            ) : (
+              <div className={`transition-colors duration-300 ${textColor}`}>
+                <UserButton expires={session?.expires ?? ''} user={session?.user} />
+              </div>
+            )}
+          </nav>
+
+          {/* Mobile right side */}
+          <div className="md:hidden flex items-center gap-4 ml-auto">
+            {session && (
+              <div className={`relative flex items-center transition-colors duration-300 ${textColor}`}>
+                <CartDrawer />
+              </div>
+            )}
+            <button
+              className="flex flex-col gap-1.5 p-2"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            >
+              <span className={`block w-6 h-[1.5px] transition-all duration-300 ${scrolled ? 'bg-black' : 'bg-white'} ${menuOpen ? 'rotate-45 translate-y-[7px]' : ''}`} />
+              <span className={`block w-6 h-[1.5px] transition-all duration-300 ${scrolled ? 'bg-black' : 'bg-white'} ${menuOpen ? 'opacity-0' : ''}`} />
+              <span className={`block w-6 h-[1.5px] transition-all duration-300 ${scrolled ? 'bg-black' : 'bg-white'} ${menuOpen ? '-rotate-45 -translate-y-[7px]' : ''}`} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile overlay menu — always white bg, black text (it's a full modal) */}
+      <div
+        className={`fixed inset-0 z-[99] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-10 transition-all duration-500 ${
+          menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        {[
+          { label: 'Home', href: '/' },
+          { label: 'Shop All', href: '/products' },
+          { label: 'Jerseys', href: '/products' },
+          { label: 'Accessories', href: '/products' },
+        ].map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            onClick={() => setMenuOpen(false)}
+            className="text-black font-black text-4xl tracking-tight uppercase hover:opacity-50 transition-opacity"
+          >
+            {item.label}
+          </Link>
+        ))}
+
+        {!session ? (
+          <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-primary mt-4 flex items-center gap-2">
+            <LogIn size={14} />
+            Sign In
+          </Link>
+        ) : (
+          <div className="mt-4" onClick={() => setMenuOpen(false)}>
+            <UserButton expires={session?.expires ?? ''} user={session?.user} />
+          </div>
+        )}
+      </div>
+    </>
+  )
 }
