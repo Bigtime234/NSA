@@ -28,6 +28,8 @@ export const SportEnum = pgEnum("sport_category", [
   "handball",
 ])
 
+export const ItemTypeEnum = pgEnum("item_type", ["apparel", "equipment"])
+
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -115,7 +117,8 @@ export const products = pgTable("products", {
   title: text("title").notNull(),
   created: timestamp("created").defaultNow(),
   price: real("price").notNull(),
-  category: SportEnum("category").default("all").notNull(), // ✅ sport category added
+  category: SportEnum("category").default("all").notNull(),
+  itemType: ItemTypeEnum("itemType").default("apparel").notNull(),
 })
 
 export const productVariants = pgTable("productVariants", {
@@ -218,18 +221,21 @@ export const customOrders = pgTable("custom_orders", {
 export const orderProduct = pgTable("orderProduct", {
   id: serial("id").primaryKey(),
   quantity: integer("quantity").notNull(),
-  productVariantID: serial("productVariantID")
+  productVariantID: integer("productVariantID")
     .notNull()
     .references(() => productVariants.id, { onDelete: "cascade" }),
-  productID: serial("productID")
+  productID: integer("productID")
     .notNull()
     .references(() => products.id, { onDelete: "cascade" }),
-  orderID: serial("orderID")
+  orderID: integer("orderID")
     .notNull()
     .references(() => orders.id, { onDelete: "cascade" }),
+  size: text("size"),
+  playerName: text("playerName"),
+  playerNumber: text("playerNumber"),
 }, (table) => ({
-  orderProductProductIdx: index("orderProduct_productIdx").on(table.productID), // ✅ index added
-  orderProductOrderIdx: index("orderProduct_orderIdx").on(table.orderID),       // ✅ index added
+  orderProductProductIdx: index("orderProduct_productIdx").on(table.productID),
+  orderProductOrderIdx: index("orderProduct_orderIdx").on(table.orderID),
 }))
 
 // Relations

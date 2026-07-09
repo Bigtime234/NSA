@@ -85,6 +85,13 @@
       "when": 1783192712240,
       "tag": "0011_normal_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783552722070,
+      "tag": "0012_cool_lady_deathstrike",
+      "breakpoints": true
     }
   ]
 }

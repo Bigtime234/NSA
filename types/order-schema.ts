@@ -7,6 +7,9 @@ const orderProductSchema = z.object({
   name: z.string(),
   price: z.number(),
   image: z.string().optional(),
+  size: z.string().optional(),
+  playerName: z.string().optional(),
+  playerNumber: z.string().optional(),
 })
 
 const customerInfoSchema = z.object({

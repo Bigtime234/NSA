@@ -6,6 +6,8 @@ import { Minus, Plus, ShoppingBag } from "lucide-react"
 import { toast } from "sonner"
 import { redirect, useSearchParams } from "next/navigation"
 
+const SIZES = ["S", "M", "L", "XL", "XXL"]
+
 interface AddCartProps {
   variant?: {
     id: number
@@ -17,6 +19,7 @@ interface AddCartProps {
       title: string
       price: number
       description: string
+      itemType?: string
       productVariants: Array<{
         variantImages: Array<{ url: string }>
       }>
@@ -29,12 +32,16 @@ interface AddCartProps {
     type: string
     price: number
     image: string
+    itemType?: string
   }
 }
 
 export default function AddCart({ variant, fallbackData }: AddCartProps) {
   const { addToCart } = useCartStore()
   const [quantity, setQuantity] = useState(1)
+  const [size, setSize] = useState<string>("")
+  const [playerName, setPlayerName] = useState("")
+  const [playerNumber, setPlayerNumber] = useState("")
   const params = useSearchParams()
 
   const urlId = Number(params.get("id"))
@@ -43,6 +50,7 @@ export default function AddCart({ variant, fallbackData }: AddCartProps) {
   const urlType = params.get("type")
   const urlPrice = Number(params.get("price"))
   const urlImage = params.get("image")
+  const urlItemType = params.get("itemType") || "apparel"
 
   let productData: any = null
 
@@ -54,6 +62,7 @@ export default function AddCart({ variant, fallbackData }: AddCartProps) {
       type: urlType,
       price: urlPrice,
       image: urlImage,
+      itemType: urlItemType,
     }
   } else if (variant) {
     productData = {
@@ -65,9 +74,10 @@ export default function AddCart({ variant, fallbackData }: AddCartProps) {
       image:
         variant.product.productVariants?.[0]?.variantImages?.[0]?.url ||
         "/placeholder.jpg",
+      itemType: variant.product.itemType ?? "apparel",
     }
   } else if (fallbackData) {
-    productData = fallbackData
+    productData = { ...fallbackData, itemType: fallbackData.itemType ?? "apparel" }
   }
 
   if (!productData) {
@@ -75,7 +85,19 @@ export default function AddCart({ variant, fallbackData }: AddCartProps) {
     return redirect("/")
   }
 
+  const isApparel = productData.itemType === "apparel"
+
   const handleAddToCart = () => {
+    if (isApparel && !size) {
+      toast.error("Please select a size")
+      return
+    }
+
+    if (isApparel && playerNumber && !/^\d{1,2}$/.test(playerNumber)) {
+      toast.error("Number must be 1-2 digits")
+      return
+    }
+
     toast.success(`${productData.title} added to cart!`)
     addToCart({
       id: productData.productID,
@@ -83,11 +105,80 @@ export default function AddCart({ variant, fallbackData }: AddCartProps) {
       name: `${productData.title} ${productData.type}`,
       price: productData.price,
       image: productData.image,
+      size: isApparel ? size : undefined,
+      playerName: isApparel ? (playerName.trim() || undefined) : undefined,
+      playerNumber: isApparel ? (playerNumber.trim() || undefined) : undefined,
     })
+
+    setPlayerName("")
+    setPlayerNumber("")
   }
 
   return (
-    <div className="flex flex-col gap-4 mt-4">
+    <div className="flex flex-col gap-6 mt-4">
+
+      {/* Size selector — apparel only */}
+      {isApparel && (
+        <div>
+          <span
+            className="text-black/40 font-bold uppercase tracking-[0.3em] block mb-3"
+            style={{ fontSize: "0.6rem" }}
+          >
+            Select Size
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {SIZES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSize(s)}
+                className={`w-12 h-12 border font-bold text-sm transition-all duration-200 ${
+                  size === s
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-black border-black/20 hover:border-black"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Personalization — apparel only */}
+      {isApparel && (
+        <div>
+          <span
+            className="text-black/40 font-bold uppercase tracking-[0.3em] block mb-3"
+            style={{ fontSize: "0.6rem" }}
+          >
+            Personalize (Optional)
+          </span>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value.toUpperCase())}
+              placeholder="Name"
+              maxLength={12}
+              className="border border-black/15 px-4 py-3 text-sm font-semibold uppercase tracking-wide placeholder:text-black/25 placeholder:font-normal placeholder:normal-case focus:outline-none focus:border-black transition-colors duration-200"
+            />
+            <input
+              type="text"
+              value={playerNumber}
+              onChange={(e) => setPlayerNumber(e.target.value.replace(/\D/g, ""))}
+              placeholder="Number"
+              maxLength={2}
+              inputMode="numeric"
+              className="border border-black/15 px-4 py-3 text-sm font-semibold placeholder:text-black/25 placeholder:font-normal focus:outline-none focus:border-black transition-colors duration-200"
+            />
+          </div>
+          <p className="text-black/30 mt-2" style={{ fontSize: "0.6rem" }}>
+            Add a name and number to personalize your jersey — free of charge.
+          </p>
+        </div>
+      )}
+
       {/* Quantity selector */}
       <div className="flex items-center gap-4">
         <span

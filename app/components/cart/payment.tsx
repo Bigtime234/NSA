@@ -102,6 +102,9 @@ export default function Payment() {
         name: item.name,
         price: item.price,
         image: item.image,
+        size: item.size,
+        playerName: item.playerName,
+        playerNumber: item.playerNumber,
       })),
       status: "pending",
       total,
@@ -116,8 +119,8 @@ export default function Payment() {
         postalCode: formData.postalCode,
       },
       paymentMethod: formData.paymentMethod,
-      dispatchLocation: dispatchLocation!,
-      dispatchFee: dispatchFee,
+      dispatchLocation,
+      dispatchFee,
     })
   }
 

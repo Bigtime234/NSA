@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm } from "react-hook-form"
-import { zProductSchema, ProductSchema, SportCategories } from "@/types/product-schema"
+import { zProductSchema, ProductSchema, SportCategories, ItemTypes } from "@/types/product-schema"
 import {
   Card,
   CardContent,
@@ -45,6 +45,7 @@ export default function ProductForm() {
       description: "",
       price: 0,
       category: "all",
+      itemType: "apparel",
     },
     mode: "onChange",
   })
@@ -67,6 +68,7 @@ export default function ProductForm() {
         form.setValue("description", data.success.description)
         form.setValue("price", data.success.price)
         form.setValue("category", data.success.category ?? "all")
+        form.setValue("itemType", data.success.itemType ?? "apparel")
         form.setValue("id", id)
       }
     }
@@ -205,6 +207,39 @@ export default function ProductForm() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Item Type — determines if Size/Personalization show on product page */}
+            <FormField
+              control={form.control}
+              name="itemType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Item Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select item type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ItemTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type === "apparel" ? "Apparel (Jersey, Shorts, Hoodie)" : "Equipment (Ball, Gloves, etc.)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Apparel shows size + name/number personalization on the product page. Equipment does not.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

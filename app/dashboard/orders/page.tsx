@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache"
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -37,14 +36,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { 
-  Package, User, Phone, MapPin, Mail, 
-  MessageCircle, Shield, CheckCircle, X, 
-  MoreHorizontal, CalendarClock, Cake
+import {
+  Package, User, Phone, MapPin, Mail,
+  MessageCircle, Shield, CheckCircle, X,
+  MoreHorizontal, CalendarClock, Truck
 } from "lucide-react"
 import Image from "next/image"
+import { getDispatchLabel } from "@/lib/dispatch-fees"
+import formatPrice from "@/lib/format-price"
 
-// Helper function to format timestamp
 function formatOrderDate(dateString: string) {
   const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
@@ -57,12 +57,11 @@ function formatOrderDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('en-US', options)
 }
 
-// Server action to update order status
 async function updateOrderStatus(orderId: string, newStatus: "pending" | "processing" | "succeeded" | "completed" | "cancelled") {
   "use server"
   const user = await auth()
   if (!user) throw new Error("Unauthorized")
-  
+
   const isAdmin = user.user.role === "admin"
   if (!isAdmin) {
     const order = await db.query.orders.findFirst({
@@ -77,7 +76,7 @@ async function updateOrderStatus(orderId: string, newStatus: "pending" | "proces
     await db.update(orders)
       .set({ status: newStatus })
       .where(eq(orders.id, Number(orderId)))
-    revalidatePath("/orders")
+    revalidatePath("/dashboard/orders")
     return { success: true }
   } catch (error) {
     console.error("Error updating order status:", error)
@@ -97,16 +96,9 @@ type OrderProductType = {
     variantImages: { url: string }[]
   }
   quantity: number
-}
-
-type CustomOrderType = {
-  size: string
-  layers: string
-  flavour?: string | null
-  creamType: string
-  toppings: string
-  addOns: string[]
-  message?: string | null
+  size: string | null
+  playerName: string | null
+  playerNumber: string | null
 }
 
 type OrderType = {
@@ -126,9 +118,10 @@ type OrderType = {
   shippingCity: string | null
   shippingState: string | null
   shippingPostalCode: string | null
+  dispatchLocation: string | null
+  dispatchFee: number | null
   updatedAt: Date | null
   orderProduct: OrderProductType[]
-  customOrder: CustomOrderType | null
 }
 
 export default async function OrdersPage() {
@@ -136,7 +129,7 @@ export default async function OrdersPage() {
   if (!session) redirect("/login")
 
   const isAdmin = session.user.role === "admin"
-  
+
   const ordersList = await db.query.orders.findMany({
     where: isAdmin ? undefined : eq(orders.userID, session.user.id),
     with: {
@@ -146,8 +139,6 @@ export default async function OrdersPage() {
           productVariants: { with: { variantImages: true } }
         }
       },
-      // Include custom order if it exists in your schema
-      customOrder: true
     },
     orderBy: (orders, { desc }) => [desc(orders.created)]
   }) as OrderType[]
@@ -159,19 +150,19 @@ export default async function OrdersPage() {
           <CardTitle className="text-2xl font-semibold flex items-center gap-3">
             {isAdmin ? (
               <>
-                <Shield className="w-6 h-6 text-blue-600" />
+                <Shield className="w-6 h-6" />
                 Order Management
               </>
             ) : (
               <>
-                <Package className="w-6 h-6 text-indigo-600" />
+                <Package className="w-6 h-6" />
                 My Orders
               </>
             )}
           </CardTitle>
           <CardDescription>
-            {isAdmin 
-              ? "View and manage all customer orders" 
+            {isAdmin
+              ? "View and manage all customer orders"
               : "Track your recent purchases and order status"
             }
           </CardDescription>
@@ -202,6 +193,9 @@ export default async function OrdersPage() {
                       Date & Time
                     </TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Delivery
+                    </TableHead>
+                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </TableHead>
                     <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -218,7 +212,7 @@ export default async function OrdersPage() {
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         #{order.id}
                       </TableCell>
-                      
+
                       {isAdmin && (
                         <TableCell className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col">
@@ -227,7 +221,7 @@ export default async function OrdersPage() {
                           </div>
                         </TableCell>
                       )}
-                      
+
                       <TableCell className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <CalendarClock className="h-4 w-4 text-gray-500" />
@@ -236,36 +230,37 @@ export default async function OrdersPage() {
                           </span>
                         </div>
                       </TableCell>
-                      
-                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        ₦{order.total.toLocaleString()}
-                      </TableCell>
-                      
+
                       <TableCell className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            className={cn(
-                              "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                              {
-                                "bg-yellow-100 text-yellow-800": order.status === "pending",
-                                "bg-blue-100 text-blue-800": order.status === "processing",
-                                "bg-green-100 text-green-800": order.status === "succeeded",
-                                "bg-purple-100 text-purple-800": order.status === "completed",
-                                "bg-red-100 text-red-800": order.status === "cancelled",
-                              }
-                            )}
-                          >
-                            {order.status}
-                          </Badge>
-                          {order.customOrder && (
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <Cake className="h-3 w-3" />
-                              Custom
-                            </Badge>
-                          )}
+                        <div className="flex items-center gap-2 text-sm">
+                          <Truck className="h-4 w-4 text-gray-500" />
+                          <span>
+                            {order.dispatchLocation ? getDispatchLabel(order.dispatchLocation) : "N/A"}
+                          </span>
                         </div>
                       </TableCell>
-                      
+
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        {formatPrice(order.total)}
+                      </TableCell>
+
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
+                        <Badge
+                          className={cn(
+                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                            {
+                              "bg-yellow-100 text-yellow-800": order.status === "pending",
+                              "bg-blue-100 text-blue-800": order.status === "processing",
+                              "bg-green-100 text-green-800": order.status === "succeeded",
+                              "bg-purple-100 text-purple-800": order.status === "completed",
+                              "bg-red-100 text-red-800": order.status === "cancelled",
+                            }
+                          )}
+                        >
+                          {order.status}
+                        </Badge>
+                      </TableCell>
+
                       <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <Dialog>
                           <DropdownMenu>
@@ -295,18 +290,11 @@ export default async function OrdersPage() {
                             </DropdownMenuContent>
                           </DropdownMenu>
 
-                          {/* Order Details Dialog */}
                           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle className="flex items-center gap-2">
                                 Order #{order.id}
                                 {isAdmin && <Badge variant="secondary">Admin View</Badge>}
-                                {order.customOrder && (
-                                  <Badge variant="outline" className="flex items-center gap-1">
-                                    <Cake className="h-3 w-3" />
-                                    Custom Cake
-                                  </Badge>
-                                )}
                               </DialogTitle>
                               <DialogDescription>
                                 Order details and information
@@ -320,7 +308,6 @@ export default async function OrdersPage() {
                             </DialogHeader>
 
                             <div className="mt-6 space-y-6">
-                              {/* Status Card */}
                               <Card>
                                 <CardHeader className="pb-2">
                                   <div className="flex items-center justify-between">
@@ -364,7 +351,6 @@ export default async function OrdersPage() {
                                 </CardHeader>
                               </Card>
 
-                              {/* Customer & Shipping Info */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Card>
                                   <CardHeader>
@@ -411,73 +397,19 @@ export default async function OrdersPage() {
                                     <p>
                                       {order.shippingCity || "N/A"}, {order.shippingState || "N/A"} {order.shippingPostalCode || ""}
                                     </p>
-                                  </CardContent>
-                                </Card>
-                              </div>
-
-                              {/* Enhanced Custom Cake Details */}
-                              {order.customOrder && (
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                      <Cake className="h-5 w-5 text-pink-600" />
-                                      Custom Cake Details
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="p-4 bg-pink-50 rounded-lg border-l-4 border-pink-400">
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                          <p className="text-sm font-medium text-pink-800">Size</p>
-                                          <p className="text-gray-700">{order.customOrder.size}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm font-medium text-pink-800">Layers</p>
-                                          <p className="text-gray-700">{order.customOrder.layers}</p>
-                                        </div>
-                                        {order.customOrder.flavour && (
-                                          <div>
-                                            <p className="text-sm font-medium text-pink-800">Flavour</p>
-                                            <p className="text-gray-700">{order.customOrder.flavour}</p>
-                                          </div>
-                                        )}
-                                        <div>
-                                          <p className="text-sm font-medium text-pink-800">Cream Type</p>
-                                          <p className="text-gray-700">{order.customOrder.creamType}</p>
-                                        </div>
-                                        {order.customOrder.toppings && (
-                                          <div>
-                                            <p className="text-sm font-medium text-pink-800">Toppings</p>
-                                            <p className="text-gray-700">{order.customOrder.toppings}</p>
-                                          </div>
-                                        )}
-                                        {order.customOrder.addOns && order.customOrder.addOns.length > 0 && (
-                                          <div className="md:col-span-2">
-                                            <p className="text-sm font-medium text-pink-800 mb-2">Add-Ons</p>
-                                            <div className="flex flex-wrap gap-2">
-                                              {order.customOrder.addOns.map((addOn, index) => (
-                                                <Badge key={index} variant="outline" className="bg-white">
-                                                  {addOn}
-                                                </Badge>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                        {order.customOrder.message && (
-                                          <div className="md:col-span-2">
-                                            <p className="text-sm font-medium text-pink-800">Special Message</p>
-                                            <p className="text-gray-700 italic bg-white p-2 rounded mt-1">
-                                              "{order.customOrder.message}"
-                                            </p>
-                                          </div>
-                                        )}
+                                    <div className="pt-2 mt-2 border-t flex items-center gap-2">
+                                      <Truck className="h-4 w-4 text-muted-foreground" />
+                                      <div>
+                                        <p className="text-sm text-muted-foreground">Dispatch Location</p>
+                                        <p className="font-medium">
+                                          {order.dispatchLocation ? getDispatchLabel(order.dispatchLocation) : "N/A"}
+                                        </p>
                                       </div>
                                     </div>
                                   </CardContent>
                                 </Card>
-                              )}
+                              </div>
 
-                              {/* Order Items */}
                               {order.orderProduct.length > 0 && (
                                 <Card>
                                   <CardHeader>
@@ -492,13 +424,15 @@ export default async function OrdersPage() {
                                         <TableRow>
                                           <TableHead className="w-[100px]">Image</TableHead>
                                           <TableHead>Product</TableHead>
+                                          <TableHead>Size</TableHead>
+                                          <TableHead>Personalization</TableHead>
                                           <TableHead>Price</TableHead>
                                           <TableHead>Qty</TableHead>
                                           <TableHead className="text-right">Total</TableHead>
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
-                                        {order.orderProduct.map(({ product, productVariants, quantity }) => (
+                                        {order.orderProduct.map(({ product, productVariants, quantity, size, playerName, playerNumber }) => (
                                           <TableRow key={`${product.id}-${productVariants.id}`}>
                                             <TableCell>
                                               <Image
@@ -511,32 +445,45 @@ export default async function OrdersPage() {
                                             </TableCell>
                                             <TableCell className="font-medium">
                                               {product.title}
-                                              <div className="flex items-center gap-2 mt-1">
-                                                <div 
-                                                  className="h-3 w-3 rounded-full border" 
-                                                  style={{ backgroundColor: productVariants.color }}
-                                                />
-                                                <span className="text-xs capitalize text-muted-foreground">
-                                                  {productVariants.color}
-                                                </span>
-                                              </div>
                                             </TableCell>
-                                            <TableCell>₦{product.price.toLocaleString()}</TableCell>
+                                            <TableCell>
+                                              {size ? (
+                                                <Badge variant="outline">{size}</Badge>
+                                              ) : (
+                                                <span className="text-muted-foreground text-xs">—</span>
+                                              )}
+                                            </TableCell>
+                                            <TableCell>
+                                              {(playerName || playerNumber) ? (
+                                                <span className="text-sm font-medium">
+                                                  {playerName} {playerNumber}
+                                                </span>
+                                              ) : (
+                                                <span className="text-muted-foreground text-xs">—</span>
+                                              )}
+                                            </TableCell>
+                                            <TableCell>{formatPrice(product.price)}</TableCell>
                                             <TableCell>{quantity}</TableCell>
                                             <TableCell className="text-right font-semibold">
-                                              ₦{(product.price * quantity).toLocaleString()}
+                                              {formatPrice(product.price * quantity)}
                                             </TableCell>
                                           </TableRow>
                                         ))}
                                       </TableBody>
                                     </Table>
 
-                                    {/* Order Total */}
-                                    <div className="mt-4 pt-4 border-t">
-                                      <div className="flex justify-between items-center">
+                                    {/* Order Total Breakdown */}
+                                    <div className="mt-4 pt-4 border-t space-y-2">
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-muted-foreground">Dispatch Fee ({order.dispatchLocation ? getDispatchLabel(order.dispatchLocation) : "N/A"})</span>
+                                        <span className="font-medium">
+                                          {formatPrice(order.dispatchFee || 0)}
+                                        </span>
+                                      </div>
+                                      <div className="flex justify-between items-center pt-2 border-t">
                                         <span className="text-lg font-semibold">Order Total:</span>
-                                        <span className="text-2xl font-bold text-green-600">
-                                          ₦{order.total.toLocaleString()}
+                                        <span className="text-2xl font-bold">
+                                          {formatPrice(order.total)}
                                         </span>
                                       </div>
                                     </div>

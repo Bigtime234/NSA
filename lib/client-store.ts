@@ -12,6 +12,10 @@ export type CartItem = {
   id: number
   variant: Variant
   price: number
+  // Jersey customization
+  size?: string
+  playerName?: string
+  playerNumber?: string
 }
 
 export type CartState = {
@@ -25,7 +29,6 @@ export type CartState = {
   clearCart: () => void
   cartOpen: boolean
   setCartOpen: (val: boolean) => void
-  // Dispatch location + fee
   dispatchLocation: string
   dispatchFee: number
   setDispatchLocation: (location: string, fee: number) => void
@@ -48,13 +51,24 @@ export const useCartStore = create<CartState>()(
 
       addToCart: (item) =>
         set((state) => {
+          // Match by variantID AND size AND playerName/playerNumber so different
+          // customizations of the same jersey stack as separate line items
           const existingItem = state.cart.find(
-            (cartItem) => cartItem.variant.variantID === item.variant.variantID
+            (cartItem) =>
+              cartItem.variant.variantID === item.variant.variantID &&
+              cartItem.size === item.size &&
+              cartItem.playerName === item.playerName &&
+              cartItem.playerNumber === item.playerNumber
           )
 
           if (existingItem) {
             const updatedCart = state.cart.map((cartItem) => {
-              if (cartItem.variant.variantID === item.variant.variantID) {
+              if (
+                cartItem.variant.variantID === item.variant.variantID &&
+                cartItem.size === item.size &&
+                cartItem.playerName === item.playerName &&
+                cartItem.playerNumber === item.playerNumber
+              ) {
                 return {
                   ...cartItem,
                   variant: {
@@ -84,7 +98,12 @@ export const useCartStore = create<CartState>()(
       removeFromCart: (item) =>
         set((state) => {
           const updatedCart = state.cart.map((cartItem) => {
-            if (cartItem.variant.variantID === item.variant.variantID) {
+            if (
+              cartItem.variant.variantID === item.variant.variantID &&
+              cartItem.size === item.size &&
+              cartItem.playerName === item.playerName &&
+              cartItem.playerNumber === item.playerNumber
+            ) {
               return {
                 ...cartItem,
                 variant: {

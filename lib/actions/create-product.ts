@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache"
 const actionClient = createSafeActionClient();
 
 export const createProduct = actionClient.schema(ProductSchema).action(
-  async ({ parsedInput: { description, price, title, id, category } }) => {
+  async ({ parsedInput: { description, price, title, id, category, itemType } }) => {
     try {
       // EDIT MODE
       if (id) {
@@ -20,7 +20,7 @@ export const createProduct = actionClient.schema(ProductSchema).action(
 
         const editedProduct = await db
           .update(products)
-          .set({ description, price, title, category })
+          .set({ description, price, title, category, itemType })
           .where(eq(products.id, id))
           .returning()
 
@@ -31,7 +31,7 @@ export const createProduct = actionClient.schema(ProductSchema).action(
       // CREATE MODE
       const newProduct = await db
         .insert(products)
-        .values({ description, price, title, category })
+        .values({ description, price, title, category, itemType })
         .returning()
 
       revalidatePath("/dashboard/products")

@@ -3,7 +3,7 @@ import { VariantsWithProduct } from "@/lib/infer-types"
 import Link from "next/link"
 import Image from "next/image"
 import formatPrice from "@/lib/format-price"
-import { useMemo } from "react"
+import { useMemo, useRef, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 
 type ProductTypes = {
@@ -37,6 +37,7 @@ export default function Products({ variants, search }: ProductTypes) {
   const params = useSearchParams()
   const paramCategory = params.get("category")
   const paramSearch = params.get("search") || search || ""
+  const gridRef = useRef<HTMLDivElement>(null)
 
   const filtered = useMemo(() => {
     let result = variants
@@ -64,6 +65,28 @@ export default function Products({ variants, search }: ProductTypes) {
     return result
   }, [paramCategory, paramSearch, variants])
 
+  useEffect(() => {
+    const init = async () => {
+      const { gsap } = await import("gsap")
+      const { ScrollTrigger } = await import("gsap/ScrollTrigger")
+      gsap.registerPlugin(ScrollTrigger)
+
+      if (gridRef.current) {
+        const cards = Array.from(gridRef.current.children)
+        gsap.set(cards, { y: 50, opacity: 0 })
+        gsap.to(cards, {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.08,
+          ease: "power3.out",
+          scrollTrigger: { trigger: gridRef.current, start: "top 85%" },
+        })
+      }
+    }
+    init()
+  }, [filtered])
+
   return (
     <section className="w-full py-8 md:py-12 lg:py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
@@ -79,7 +102,7 @@ export default function Products({ variants, search }: ProductTypes) {
         )}
 
         {/* Product grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+        <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
           {filtered.map((variant) => (
             <Link
               key={variant.id}

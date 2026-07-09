@@ -92,6 +92,22 @@ export default function CartItems() {
                     {formatPrice(item.price)}
                   </p>
 
+                  {/* Size + personalization */}
+                  {(item.size || item.playerName || item.playerNumber) && (
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      {item.size && (
+                        <span className="border border-black/15 px-2 py-0.5 text-black/60 font-bold uppercase" style={{ fontSize: "0.55rem" }}>
+                          Size {item.size}
+                        </span>
+                      )}
+                      {(item.playerName || item.playerNumber) && (
+                        <span className="border border-black/15 px-2 py-0.5 text-black/60 font-bold uppercase" style={{ fontSize: "0.55rem" }}>
+                          {item.playerName} {item.playerNumber}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-3 mt-3">
                     <button
                       onClick={() =>

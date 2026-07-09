@@ -89,7 +89,7 @@ export default function BestSellers({ variants }: BestSellersProps) {
             return (
               <Link
                 key={variant.id}
-                href={`/products/${variant.id}?id=${variant.id}&productID=${variant.productID}&price=${variant.product.price}&title=${variant.product.title}&type=${variant.productType}&image=${image}`}
+                href={`/products/${variant.id}?id=${variant.id}&productID=${variant.productID}&price=${variant.product.price}&title=${variant.product.title}&type=${variant.productType}&image=${image}&itemType=${variant.product.itemType}`}
                 className="group py-6 md:py-8 flex items-center gap-6 md:gap-10 cursor-pointer"
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
