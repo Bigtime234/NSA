@@ -38,9 +38,15 @@ export default function OrderConfirmed() {
         <h2 className="text-black font-black uppercase text-3xl tracking-tight mb-4">
           Thank You!
         </h2>
+        <p className="text-black/50 leading-relaxed max-w-xs mb-3" style={{ fontSize: "0.8rem" }}>
+          Your order has been received. Payment is verified manually,
+          so this can take up to 20 minutes.
+        </p>
         <p className="text-black/50 leading-relaxed max-w-xs" style={{ fontSize: "0.8rem" }}>
-          Your order has been received and is being reviewed. 
-          You'll receive a confirmation once payment is verified.
+          Check <strong className="text-black">My Orders</strong> in a
+          little while — your status will update to{" "}
+          <strong className="text-black">Confirmed</strong> once we've
+          verified your payment.
         </p>
       </motion.div>
 

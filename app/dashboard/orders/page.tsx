@@ -3,7 +3,6 @@ import { auth } from "@/server/auth"
 import { orders } from "@/server/schema"
 import { eq } from "drizzle-orm"
 import { redirect } from "next/navigation"
-import { revalidatePath } from "next/cache"
 import {
   Table,
   TableBody,
@@ -22,28 +21,12 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
-import {
-  Package, User, Phone, MapPin, Mail,
-  MessageCircle, Shield, CheckCircle, X,
-  MoreHorizontal, CalendarClock, Truck
+  Package, Shield,
+  CalendarClock, Truck
 } from "lucide-react"
-import Image from "next/image"
 import { getDispatchLabel } from "@/lib/dispatch-fees"
 import formatPrice from "@/lib/format-price"
+import { OrderRowDialog } from "@/app/components/navigation/order-row-dialog"
 
 function formatOrderDate(dateString: string) {
   const options: Intl.DateTimeFormatOptions = {
@@ -57,31 +40,15 @@ function formatOrderDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('en-US', options)
 }
 
-async function updateOrderStatus(orderId: string, newStatus: "pending" | "processing" | "succeeded" | "completed" | "cancelled") {
-  "use server"
-  const user = await auth()
-  if (!user) throw new Error("Unauthorized")
-
-  const isAdmin = user.user.role === "admin"
-  if (!isAdmin) {
-    const order = await db.query.orders.findFirst({
-      where: eq(orders.id, Number(orderId)),
-    })
-    if (!order || order.userID !== user.user.id) {
-      throw new Error("Unauthorized to update this order")
-    }
+function friendlyStatus(status: string) {
+  const map: Record<string, string> = {
+    pending: "Awaiting Verification",
+    processing: "Processing",
+    succeeded: "Confirmed",
+    completed: "Delivered",
+    cancelled: "Cancelled",
   }
-
-  try {
-    await db.update(orders)
-      .set({ status: newStatus })
-      .where(eq(orders.id, Number(orderId)))
-    revalidatePath("/dashboard/orders")
-    return { success: true }
-  } catch (error) {
-    console.error("Error updating order status:", error)
-    throw new Error("Failed to update order status")
-  }
+  return map[status] ?? status
 }
 
 type OrderProductType = {
@@ -257,242 +224,12 @@ export default async function OrdersPage() {
                             }
                           )}
                         >
-                          {order.status}
+                          {friendlyStatus(order.status)}
                         </Badge>
                       </TableCell>
 
                       <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Dialog>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DialogTrigger asChild>
-                                <DropdownMenuItem>
-                                  View details
-                                </DropdownMenuItem>
-                              </DialogTrigger>
-                              {isAdmin && order.status === "pending" && (
-                                <DropdownMenuItem>
-                                  <form action={async () => {
-                                    "use server"
-                                    await updateOrderStatus(order.id.toString(), "succeeded")
-                                  }}>
-                                    <button type="submit" className="w-full text-left">
-                                      Complete order
-                                    </button>
-                                  </form>
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-
-                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
-                                Order #{order.id}
-                                {isAdmin && <Badge variant="secondary">Admin View</Badge>}
-                              </DialogTitle>
-                              <DialogDescription>
-                                Order details and information
-                              </DialogDescription>
-                              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                <CalendarClock className="h-4 w-4" />
-                                <span>
-                                  Placed on {order.created ? formatOrderDate(order.created.toISOString()) : "N/A"}
-                                </span>
-                              </div>
-                            </DialogHeader>
-
-                            <div className="mt-6 space-y-6">
-                              <Card>
-                                <CardHeader className="pb-2">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <h3 className="text-lg font-medium">Order Status</h3>
-                                      <Badge
-                                        className={cn({
-                                          "bg-yellow-100 text-yellow-800": order.status === "pending",
-                                          "bg-blue-100 text-blue-800": order.status === "processing",
-                                          "bg-green-100 text-green-800": order.status === "succeeded",
-                                          "bg-purple-100 text-purple-800": order.status === "completed",
-                                          "bg-red-100 text-red-800": order.status === "cancelled",
-                                        })}
-                                      >
-                                        {order.status}
-                                      </Badge>
-                                    </div>
-                                    {isAdmin && order.status === "pending" && (
-                                      <div className="flex gap-2">
-                                        <form action={async () => {
-                                          "use server"
-                                          await updateOrderStatus(order.id.toString(), "succeeded")
-                                        }}>
-                                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                                            <CheckCircle className="mr-2 h-4 w-4" />
-                                            Mark Complete
-                                          </Button>
-                                        </form>
-                                        <form action={async () => {
-                                          "use server"
-                                          await updateOrderStatus(order.id.toString(), "cancelled")
-                                        }}>
-                                          <Button size="sm" variant="destructive">
-                                            <X className="mr-2 h-4 w-4" />
-                                            Cancel
-                                          </Button>
-                                        </form>
-                                      </div>
-                                    )}
-                                  </div>
-                                </CardHeader>
-                              </Card>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                      <User className="h-5 w-5" />
-                                      Customer Information
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                      <Mail className="h-4 w-4 text-muted-foreground" />
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">Email</p>
-                                        <p>{order.customerEmail || "N/A"}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <Phone className="h-4 w-4 text-muted-foreground" />
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">Phone</p>
-                                        <p>{order.customerPhone || "N/A"}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">WhatsApp</p>
-                                        <p>{order.customerWhatsapp || "N/A"}</p>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                      <MapPin className="h-5 w-5" />
-                                      Shipping Address
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <p className="font-medium">{order.customerName || "N/A"}</p>
-                                    <p>{order.shippingAddress || "N/A"}</p>
-                                    <p>
-                                      {order.shippingCity || "N/A"}, {order.shippingState || "N/A"} {order.shippingPostalCode || ""}
-                                    </p>
-                                    <div className="pt-2 mt-2 border-t flex items-center gap-2">
-                                      <Truck className="h-4 w-4 text-muted-foreground" />
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">Dispatch Location</p>
-                                        <p className="font-medium">
-                                          {order.dispatchLocation ? getDispatchLabel(order.dispatchLocation) : "N/A"}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </div>
-
-                              {order.orderProduct.length > 0 && (
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                      <Package className="h-5 w-5" />
-                                      Ordered Items (Total: {order.orderProduct.length})
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead className="w-[100px]">Image</TableHead>
-                                          <TableHead>Product</TableHead>
-                                          <TableHead>Size</TableHead>
-                                          <TableHead>Personalization</TableHead>
-                                          <TableHead>Price</TableHead>
-                                          <TableHead>Qty</TableHead>
-                                          <TableHead className="text-right">Total</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {order.orderProduct.map(({ product, productVariants, quantity, size, playerName, playerNumber }) => (
-                                          <TableRow key={`${product.id}-${productVariants.id}`}>
-                                            <TableCell>
-                                              <Image
-                                                src={productVariants.variantImages[0]?.url || "/placeholder.jpg"}
-                                                width={60}
-                                                height={60}
-                                                alt={product.title}
-                                                className="rounded-md object-cover"
-                                              />
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                              {product.title}
-                                            </TableCell>
-                                            <TableCell>
-                                              {size ? (
-                                                <Badge variant="outline">{size}</Badge>
-                                              ) : (
-                                                <span className="text-muted-foreground text-xs">—</span>
-                                              )}
-                                            </TableCell>
-                                            <TableCell>
-                                              {(playerName || playerNumber) ? (
-                                                <span className="text-sm font-medium">
-                                                  {playerName} {playerNumber}
-                                                </span>
-                                              ) : (
-                                                <span className="text-muted-foreground text-xs">—</span>
-                                              )}
-                                            </TableCell>
-                                            <TableCell>{formatPrice(product.price)}</TableCell>
-                                            <TableCell>{quantity}</TableCell>
-                                            <TableCell className="text-right font-semibold">
-                                              {formatPrice(product.price * quantity)}
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-
-                                    {/* Order Total Breakdown */}
-                                    <div className="mt-4 pt-4 border-t space-y-2">
-                                      <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Dispatch Fee ({order.dispatchLocation ? getDispatchLabel(order.dispatchLocation) : "N/A"})</span>
-                                        <span className="font-medium">
-                                          {formatPrice(order.dispatchFee || 0)}
-                                        </span>
-                                      </div>
-                                      <div className="flex justify-between items-center pt-2 border-t">
-                                        <span className="text-lg font-semibold">Order Total:</span>
-                                        <span className="text-2xl font-bold">
-                                          {formatPrice(order.total)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        <OrderRowDialog order={order} isAdmin={isAdmin} />
                       </TableCell>
                     </TableRow>
                   ))}

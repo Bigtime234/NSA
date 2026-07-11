@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/lib/client-store'
 import { toast } from 'sonner'
 import formatPrice from '@/lib/format-price'
@@ -20,7 +19,6 @@ export default function FeaturedJerseys({ variants }: FeaturedJerseysProps) {
   const headingRef = useRef<HTMLDivElement>(null)
   const cardsRef = useRef<HTMLDivElement>(null)
   const { addToCart } = useCartStore()
-  const router = useRouter()
   const [quantities] = useState<Record<number, number>>({})
 
   useEffect(() => {
@@ -65,20 +63,10 @@ export default function FeaturedJerseys({ variants }: FeaturedJerseysProps) {
     init()
   }, [])
 
+  // Only ever called for equipment now — apparel navigates via a real Link (see JSX)
   const handleAddToCart = (variant: VariantsWithProduct) => {
     const image = variant.variantImages?.[0]?.url || '/placeholder.jpg'
-    const isApparel = variant.product.itemType === 'apparel'
 
-    if (isApparel) {
-      // Apparel needs size selection — send them to the product page instead of
-      // adding blind (same hover interaction, smarter destination on click)
-      router.push(
-        `/products/${variant.id}?id=${variant.id}&productID=${variant.productID}&price=${variant.product.price}&title=${variant.product.title}&type=${variant.productType}&image=${image}&itemType=${variant.product.itemType}`
-      )
-      return
-    }
-
-    // Equipment has no customization — quick add works instantly
     toast.success(`Added ${variant.product.title} ${variant.productType} to your cart!`)
     addToCart({
       id: variant.product.id,
@@ -169,18 +157,33 @@ export default function FeaturedJerseys({ variants }: FeaturedJerseysProps) {
                     </span>
                   </div>
 
-                  {/* Add to Cart overlay on hover */}
-                  <button
-                    onClick={() => handleAddToCart(variant)}
-                    className="absolute inset-x-0 bottom-0 z-10 bg-black py-4 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-full"
-                  >
-                    <span
-                      className="text-white font-bold uppercase"
-                      style={{ fontSize: '0.65rem', letterSpacing: '0.35em' }}
+                  {/* Add to Cart / Select Size overlay on hover */}
+                  {variant.product.itemType === 'apparel' ? (
+                    <Link
+                      href={`/products/${variant.id}?id=${variant.id}&productID=${variant.productID}&price=${variant.product.price}&title=${variant.product.title}&type=${variant.productType}&image=${image}&itemType=${variant.product.itemType}`}
+                      className="absolute inset-x-0 bottom-0 z-10 bg-black py-4 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-full"
                     >
-                      Add to Cart
-                    </span>
-                  </button>
+                      <span
+                        className="text-white font-bold uppercase"
+                        style={{ fontSize: '0.65rem', letterSpacing: '0.35em' }}
+                      >
+                        Select Size
+                      </span>
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(variant)}
+                      className="absolute inset-x-0 bottom-0 z-10 bg-black py-4 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-full"
+                    >
+                      <span
+                        className="text-white font-bold uppercase"
+                        style={{ fontSize: '0.65rem', letterSpacing: '0.35em' }}
+                      >
+                        Add to Cart
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Product info */}
