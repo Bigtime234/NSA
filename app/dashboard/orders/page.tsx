@@ -144,7 +144,7 @@ export default async function OrdersPage() {
               </h3>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <Table className="min-w-full divide-y divide-gray-200">
                 <TableHeader className="bg-gray-50">
                   <TableRow>

@@ -44,8 +44,8 @@ export default function Payment() {
   })
   const [copied, setCopied] = useState(false)
 
-  const accountNumber = "9166813017"
-  const accountName = "NSA Official"
+  const accountNumber = "8125966950"
+  const accountName = "JOHNSON OLASILE NATHANIEL"
 
   const itemsTotal = cart.reduce((sum, item) => {
     return sum + item.price * item.variant.quantity
@@ -288,7 +288,7 @@ export default function Payment() {
               onChange={handleInputChange} rows={2} placeholder="Enter your full address"
               className={`${inputClass} resize-none`} />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className={labelClass} style={{ fontSize: "0.5rem" }}>City</label>
               <input type="text" name="city" value={formData.city}

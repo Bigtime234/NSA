@@ -5,6 +5,8 @@ import Image from "next/image"
 import formatPrice from "@/lib/format-price"
 import { useMemo, useRef, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
+import { useCartStore } from "@/lib/client-store"
+import { toast } from "sonner"
 
 type ProductTypes = {
   variants: VariantsWithProduct[]
@@ -38,6 +40,24 @@ export default function Products({ variants, search }: ProductTypes) {
   const paramCategory = params.get("category")
   const paramSearch = params.get("search") || search || ""
   const gridRef = useRef<HTMLDivElement>(null)
+  const { addToCart } = useCartStore()
+
+  const handleAddToCart = (
+    e: React.MouseEvent,
+    variant: VariantsWithProduct
+  ) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const image = variant.variantImages?.[0]?.url || "/placeholder.jpg"
+    toast.success(`Added ${variant.product.title} ${variant.productType} to your cart!`)
+    addToCart({
+      id: variant.product.id,
+      variant: { variantID: variant.id, quantity: 1 },
+      name: `${variant.product.title} ${variant.productType}`,
+      price: variant.product.price,
+      image,
+    })
+  }
 
   const filtered = useMemo(() => {
     let result = variants
@@ -106,7 +126,7 @@ export default function Products({ variants, search }: ProductTypes) {
           {filtered.map((variant) => (
             <Link
               key={variant.id}
-              href={`/products/${variant.id}?id=${variant.id}&productID=${variant.productID}&price=${variant.product.price}&title=${variant.product.title}&type=${variant.productType}&image=${variant.variantImages[0]?.url}`}
+              href={`/products/${variant.id}?id=${variant.id}&productID=${variant.productID}&price=${variant.product.price}&title=${variant.product.title}&type=${variant.productType}&image=${variant.variantImages[0]?.url}&itemType=${variant.product.itemType}`}
               className="group block w-full"
             >
               <div className="relative bg-white overflow-hidden h-full border border-black/10 hover:border-black transition-all duration-300">
@@ -140,12 +160,25 @@ export default function Products({ variants, search }: ProductTypes) {
                   </div>
 
                   {/* Hover overlay */}
-                  <div className="absolute inset-x-0 bottom-0 bg-black py-3 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-                    <span className="text-white font-bold uppercase"
-                      style={{ fontSize: "0.6rem", letterSpacing: "0.35em" }}>
-                      View Product
-                    </span>
-                  </div>
+                  {variant.product.itemType === "apparel" ? (
+                    <div className="absolute inset-x-0 bottom-0 bg-black py-3 text-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10">
+                      <span className="text-white font-bold uppercase"
+                        style={{ fontSize: "0.6rem", letterSpacing: "0.35em" }}>
+                        Select Size
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => handleAddToCart(e, variant)}
+                      className="absolute inset-x-0 bottom-0 bg-black py-3 text-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-20 w-full"
+                    >
+                      <span className="text-white font-bold uppercase"
+                        style={{ fontSize: "0.6rem", letterSpacing: "0.35em" }}>
+                        Add to Cart
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Info */}

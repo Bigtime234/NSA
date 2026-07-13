@@ -161,7 +161,7 @@ export default function FeaturedJerseys({ variants }: FeaturedJerseysProps) {
                   {variant.product.itemType === 'apparel' ? (
                     <Link
                       href={`/products/${variant.id}?id=${variant.id}&productID=${variant.productID}&price=${variant.product.price}&title=${variant.product.title}&type=${variant.productType}&image=${image}&itemType=${variant.product.itemType}`}
-                      className="absolute inset-x-0 bottom-0 z-10 bg-black py-4 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-full"
+                      className="absolute inset-x-0 bottom-0 z-10 bg-black py-4 text-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 w-full"
                     >
                       <span
                         className="text-white font-bold uppercase"
@@ -174,7 +174,7 @@ export default function FeaturedJerseys({ variants }: FeaturedJerseysProps) {
                     <button
                       type="button"
                       onClick={() => handleAddToCart(variant)}
-                      className="absolute inset-x-0 bottom-0 z-10 bg-black py-4 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-full"
+                      className="absolute inset-x-0 bottom-0 z-10 bg-black py-4 text-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 w-full"
                     >
                       <span
                         className="text-white font-bold uppercase"

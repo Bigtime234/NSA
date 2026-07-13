@@ -61,24 +61,39 @@ export default function ProductTags() {
       if (newCategory) query.set("category", newCategory)
       if (newSearch) query.set("search", newSearch)
       startTransition(() => {
-        router.push(`/?${query.toString()}`)
+        router.replace(`/?${query.toString()}`, { scroll: false })
       })
     },
     [router]
   )
 
+  // Debounce search — only fires the server request 400ms after the user
+  // stops typing, instead of on every single keystroke
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const handleSearch = useCallback(
     (value: string) => {
-      updateURL(category, value)
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        updateURL(category, value)
+      }, 400)
     },
     [category, updateURL]
   )
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
   const handleFilter = (value: string) => {
+    // Filter clicks stay instant — no debounce needed, it's a single deliberate action
     updateURL(value, search)
   }
 
   const clearSearch = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     if (inputRef.current) inputRef.current.value = ""
     updateURL(category, "")
   }
@@ -152,7 +167,7 @@ export default function ProductTags() {
             <button
               onClick={() => {
                 if (inputRef.current) inputRef.current.value = ""
-                router.push("/")
+                router.replace("/", { scroll: false })
               }}
               className="ml-auto flex items-center gap-2 text-black/40 hover:text-black transition-colors duration-200 uppercase font-bold tracking-[0.2em]"
               style={{ fontSize: "0.6rem" }}
